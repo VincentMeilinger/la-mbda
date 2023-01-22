@@ -136,3 +136,4 @@ class SwagWorldModel(BayesianWorldModel):
         if self._config.safety:
             self._logger['agent/cost_log_p'].update_state(-results['log_p_costs'])
         return results['beliefs']
+

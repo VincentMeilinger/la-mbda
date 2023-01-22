@@ -23,7 +23,7 @@ def define_config():
         'steps_per_update': 1000,
         'steps_per_critic_clone': 1000,
         'batch_size': 32,
-        'warmup_training_steps': 5000,
+        'warmup_training_steps': 5000,  # 5000
         # MODELS
         'kl_scale': 1.0,
         'kl_mix': 0.8,
@@ -55,15 +55,15 @@ def define_config():
         'safety_discount': 0.995,
         'cost_imbalance_weight': 100.0,
         # TRAINING
-        'total_training_steps': 500000,
+        'total_training_steps': 5000,  # 500000
         'action_repeat': 2,
-        'environment': 'dmc_cartpole_balance',
+        'environment': 'sgym_Safexp-PointGoal2-v0',
         'safety': False,
         'observation_type': 'rgb_image',
         'seed': 314,
-        'episode_length': 1000,
-        'training_steps_per_epoch': 25000,
-        'evaluation_steps_per_epoch': 10000,
+        'episode_length': 100,  # 1000
+        'training_steps_per_epoch': 250,  # 25000
+        'evaluation_steps_per_epoch': 100,  # 10000
         'log_dir': 'runs',
         'render_episodes': 1,
         'evaluate_model': False,

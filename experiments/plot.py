@@ -29,6 +29,7 @@ def parse_tf_event_file(file_path):
     print('Parsing event file {}'.format(file_path))
     ea = event_accumulator.EventAccumulator(file_path)
     ea.Reload()
+    print("*** Keys", ea.scalars.Keys())
     if any(map(lambda metric: metric not in ea.scalars.Keys(),
                ['evaluation/average_return',
                 'evaluation/average_cost_return',
@@ -36,6 +37,7 @@ def parse_tf_event_file(file_path):
            ):
         return [], [], [], []
     rl_objective, safety_objective, timesteps = [], [], []
+
     for i, (objective, cost_objective) in enumerate(zip(
             ea.Scalars('evaluation/average_return'), ea.Scalars('evaluation/average_cost_return')
     )):
@@ -213,11 +215,17 @@ def summarize_experiments(config):
     all_results = defaultdict(dict)
     all_errors = defaultdict(dict)
     annnotations = []
+
     for algo in algos:
+        print("*** Algorithm: ", resolve_name(algo))
         environments = next(os.walk(os.path.join(root, algo)))[1]
         for environment, env_axes in zip(environments, axes):
+            print("*** Environment: ", resolve_environment(environment))
             experiment = os.path.join(root, algo, environment)
             print('Processing experiment {}...'.format(experiment))
+            print("*** Data: ", *parse_experiment_data(
+                experiment,
+                steps[resolve_environment(environment)]))
             experiment_statistics = make_statistics(*parse_experiment_data(
                 experiment,
                 steps[resolve_environment(environment)]))
@@ -272,7 +280,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     import matplotlib as mpl
 
+
     mpl.rcParams["text.usetex"] = True
     mpl.rcParams["font.family"] = "serif"
     mpl.rcParams["font.serif"] = "Times New Roman"
+    mpl.rcParams.update(mpl.rcParamsDefault)
     summarize_experiments(args)

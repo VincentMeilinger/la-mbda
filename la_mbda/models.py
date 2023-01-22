@@ -7,7 +7,6 @@ from tensorflow_probability import distributions as tfd
 import la_mbda.building_blocks as blocks
 import la_mbda.utils as utils
 
-
 class WorldModel(tf.Module):
     def __init__(self, observation_type, observation_shape, stochastic_size, deterministic_size,
                  units, safety, cost_weight=1.0, free_nats=1.0, mix=0.8, kl_scale=1.0,
@@ -251,6 +250,8 @@ class Actor(tf.Module):
             clipnorm=self._config.actor_grad_clip_norm,
             epsilon=1e-5)
 
+
+
     def __call__(self, observation):
         mu, stddev = tf.split(self._policy(observation), 2, -1)
         init_std = np.log(np.exp(5.0) - 1)
@@ -269,6 +270,7 @@ class Actor(tf.Module):
         grads, _ = tf.clip_by_global_norm(grads, self._config.actor_grad_clip_norm, norm)
         self._optimizer.apply_gradients(zip(grads, self.trainable_variables))
         return norm
+
 
 
 # Following https://github.com/tensorflow/probability/issues/840 and
