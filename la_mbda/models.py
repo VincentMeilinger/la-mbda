@@ -205,6 +205,9 @@ class Critic(tf.Module):
         if self._delayed_value.inputs is not None:
             utils.clone_model(self._value, self._delayed_value)
 
+    def get_loss(self):
+        return self._loss
+
 
 class SafetyCritic(Critic):
     def __init__(self, config, layers):

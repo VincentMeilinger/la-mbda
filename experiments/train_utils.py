@@ -155,7 +155,7 @@ def make_config(config):
     parser = argparse.ArgumentParser()
     for key, value in config.items():
         if type(value) == bool:
-            assert not value, "Default bool params should be set to false."
+            #assert not value, "Default bool params should be set to false."
             parser.add_argument('--{}'.format(key), action='store_true')
         else:
             parser.add_argument('--{}'.format(key),

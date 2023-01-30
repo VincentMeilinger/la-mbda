@@ -217,10 +217,10 @@ def summarize_experiments(config):
     annnotations = []
 
     for algo in algos:
-        print("*** Algorithm: ", resolve_name(algo))
+        print("*** Algorithm: ", resolve_name(algo), algo)
         environments = next(os.walk(os.path.join(root, algo)))[1]
         for environment, env_axes in zip(environments, axes):
-            print("*** Environment: ", resolve_environment(environment))
+            print("*** Environment: ", resolve_environment(environment), environment)
             experiment = os.path.join(root, algo, environment)
             print('Processing experiment {}...'.format(experiment))
             print("*** Data: ", *parse_experiment_data(
@@ -234,6 +234,8 @@ def summarize_experiments(config):
                 experiment_statistics['mean_sum_costs_median'][-1],
                 experiment_statistics['average_costs_median'][-1]
             )
+            print("\n\naverage_costs_median ", experiment_statistics['average_costs_median'])
+            print("\n\nobjectives_median ", experiment_statistics['objectives_median'])
             all_errors[resolve_environment(environment)][resolve_name(algo)] = (
                 ((experiment_statistics['objectives_lower'][-1],
                   experiment_statistics['objectives_upper'][-1])),

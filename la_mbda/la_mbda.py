@@ -121,6 +121,7 @@ class LAMBDA(tf.Module):
         metrics = {'agent/actor_loss': actor_loss, 'agent/actor_grads_norm': actor_grads_norm,
                    'agent/critic_loss': critic_loss, 'agent/critic_grads_norm': critic_grads_norm,
                    'agent/pi_entropy': self.actor(posterior_sequences['features']).entropy()}
+
         if self._config.safety:
             safety_critic_loss, safety_critic_grads_norm = self.safety_critic.train(
                 pessimistic_cost_sample['features'],
