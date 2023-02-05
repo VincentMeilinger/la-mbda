@@ -12,7 +12,19 @@ import botorch.acquisition as acqf
 from botorch.optim import optimize_acqf
 import matplotlib.pyplot as plt
 
+
 def plot_bo(gp, ei, x_samples, iter, bounds):
+    """
+    Create and save plots of the Gaussian process posterior mean and the acquisition function within the BO loop.
+    Plots are saved in the "plots/" directory.
+    Arguments:
+        gp: Gaussian Process
+        ei: "Expected Improvement" acquisition function
+        x_samples: All previous observations of the objective function
+        iter: Current BO iteration
+        bounds: Bounds of the variables to optimize
+    """
+
     x_ = torch.linspace(-1, 1, 100)
     y_ = torch.linspace(-1, 1, 100)
     x_axis, y_axis = torch.meshgrid(x_, y_, indexing="xy")
@@ -55,6 +67,11 @@ def plot_bo(gp, ei, x_samples, iter, bounds):
 
 
 def plot_final(y_samples):
+    """
+    Create and save a plot summarizing the cost in each BO iteration.
+    Arguments:
+        y_samples: Tensor of cost function observations of each iteration
+    """
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.title.set_text('Agent score over iterations')
     ax.plot(y_samples, color='green', marker='o', linestyle='dashed', linewidth=2, markersize=12)
@@ -62,20 +79,40 @@ def plot_final(y_samples):
 
 
 def normalize(x: torch.tensor, bounds: torch.tensor):
+    """
+    Normalize tensor 'x' given bounds (minimum and maximum) to a range of [-1, 1] in each dimension.
+    Arguments:
+        x: Input tensor to normalize
+        bounds: The minimum/maximum values for each dimension ([[min_1, min_2, ...][max_1, max_2, ...]])
+    """
     x_min = bounds[0]
     x_max = bounds[1]
-    norm = (x - x_min)/(x_max - x_min)
-    return 2*norm-1
+    norm = (x - x_min) / (x_max - x_min)
+    return 2 * norm - 1
 
 
 def denormalize(norm: torch.tensor, bounds: torch.tensor):
+    """
+    Denormalize (rescale to original range) tensor 'norm' given bounds (minimum and maximum) in each dimension.
+    Arguments:
+        norm: Input tensor to denormalize
+        bounds: The minimum/maximum values for each dimension ([[min_1, min_2, ...][max_1, max_2, ...]])
+    """
     x_min = bounds[:, 0]
     x_max = bounds[:, 1]
-    x = (norm+1)/2
+    x = (norm + 1) / 2
     return x * (x_max - x_min) + x_min
 
 
 def get_y_sample(root="results", algo="la_mbda", environment="point_goal2"):
+    """
+    Compute the cost of the BO objective function. Assumes experiments are stored in the following folder structure:
+    'root/algo/environment/...'
+    :param root: Root experiment directory
+    :param algo: Algorithm directory
+    :param environment: Environment directory
+    :return: Cost function value
+    """
     experiment = os.path.join(root, algo, environment)
     experiment_statistics = make_statistics(*parse_experiment_data(
         experiment,
@@ -87,6 +124,10 @@ def get_y_sample(root="results", algo="la_mbda", environment="point_goal2"):
 
 
 if __name__ == '__main__':
+    """
+    The Bayesian optimization (BO) procedure.
+    """
+
     torch.manual_seed(0)
     config_dict = train_utils.define_config()
     config_dict["log_dir"] = 'results/la_mbda/point_goal2/314'
@@ -94,20 +135,22 @@ if __name__ == '__main__':
     config = train_utils.make_config(config_dict)
     from la_mbda.la_mbda import LAMBDA
 
+    # Define the hyperparameters to optimize (name and bounds)
     bo_vars = [
         {
             "name": "discount",
-            "bounds": tensor([0.8, 1.0, 0.01])
+            "bounds": tensor([0.8, 1.0])
         },
         {
             "name": "lambda_",
-            "bounds": tensor([0.8, 1.0, 0.01])
+            "bounds": tensor([0.8, 1.0])
         },
     ]  # 'discount': 0.99, 'lambda_': 0.95
 
+    # Tensor containing hyperparameter bounds
     bounds = tensor([[0., 0.]])
     for var in bo_vars:
-        bound = torch.unsqueeze(var["bounds"][0:2], 0)
+        bound = torch.unsqueeze(var["bounds"], 0)
         bounds = torch.cat((bounds, bound), dim=0)
     bounds = bounds[1:].T
     print("*** Bounds: ", bounds)
@@ -154,6 +197,7 @@ if __name__ == '__main__':
             raw_samples=20
         )
         best_candidate = denormalize(best_candidate, bounds=bounds)
+
         # Set new hyperparameters in config
         for ix, var in enumerate(bo_vars):
             config_dict[var["name"]] = float(best_candidate[0][ix])
@@ -180,6 +224,3 @@ if __name__ == '__main__':
         )
 
     plot_final(y_samples)
-
-
-
