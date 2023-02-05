@@ -8,9 +8,71 @@ from torch import tensor
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from botorch.models import SingleTaskGP
 from botorch.fit import fit_gpytorch_model
-from botorch.utils import standardize
 import botorch.acquisition as acqf
 from botorch.optim import optimize_acqf
+import matplotlib.pyplot as plt
+
+def plot_bo(gp, ei, x_samples, iter, bounds):
+    x_ = torch.linspace(-1, 1, 100)
+    y_ = torch.linspace(-1, 1, 100)
+    x_axis, y_axis = torch.meshgrid(x_, y_, indexing="xy")
+    grid = torch.stack((x_axis, y_axis), 2)
+    X_ = grid.reshape(len(x_) * len(y_), 2)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.title.set_text('Acquisition Function')
+
+    if len(x_samples) > 1:
+        ax.scatter(x_samples[:, 0][0:-1], x_samples[:, 1][0:-1], color='white')
+    ax.scatter(x_samples[:, 0][-1], x_samples[:, 1][-1], color='red')
+
+    ei_post = ei(X_.unsqueeze(1)).detach().numpy().reshape(len(x_), len(y_))
+    ax.imshow(ei_post, extent=[bounds[0][0], bounds[1][0], bounds[0][1], bounds[1][1]])
+    ax.spines['right'].set_color('none')
+    ax.spines['top'].set_color('none')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    ax.set_xlabel('discount')
+    ax.set_ylabel('lambda_')
+    plt.savefig("plots/acqf" + str(iter) + ".png")
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.title.set_text('GP Mean')
+
+    if len(x_samples) > 1:
+        ax.scatter(x_samples[:, 0][0:-1].numpy(), x_samples[:, 1][0:-1], color='white')
+    ax.scatter(x_samples[:, 0][-1], x_samples[:, 1][-1], color='red')
+
+    posterior_mean = gp.posterior(X_).mean.detach().numpy().reshape(len(x_), len(y_))
+    ax.imshow(posterior_mean, extent=[bounds[0][0], bounds[1][0], bounds[0][1], bounds[1][1]])
+
+    ax.spines['right'].set_color('none')
+    ax.spines['top'].set_color('none')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    ax.set_xlabel('discount')
+    ax.set_ylabel('lambda_')
+    plt.savefig("plots/mean" + str(iter) + ".png")
+
+
+def plot_final(y_samples):
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.title.set_text('Agent score over iterations')
+    ax.plot(y_samples, color='green', marker='o', linestyle='dashed', linewidth=2, markersize=12)
+    plt.savefig("plots/score.png")
+
+
+def normalize(x: torch.tensor, bounds: torch.tensor):
+    x_min = bounds[0]
+    x_max = bounds[1]
+    norm = (x - x_min)/(x_max - x_min)
+    return 2*norm-1
+
+
+def denormalize(norm: torch.tensor, bounds: torch.tensor):
+    x_min = bounds[:, 0]
+    x_max = bounds[:, 1]
+    x = (norm+1)/2
+    return x * (x_max - x_min) + x_min
 
 
 def get_y_sample(root="results", algo="la_mbda", environment="point_goal2"):
@@ -25,6 +87,7 @@ def get_y_sample(root="results", algo="la_mbda", environment="point_goal2"):
 
 
 if __name__ == '__main__':
+    torch.manual_seed(0)
     config_dict = train_utils.define_config()
     config_dict["log_dir"] = 'results/la_mbda/point_goal2/314'
     config_dict["safety"] = True
@@ -34,11 +97,11 @@ if __name__ == '__main__':
     bo_vars = [
         {
             "name": "discount",
-            "bounds": tensor([0.9, 1.0, 0.01])
+            "bounds": tensor([0.8, 1.0, 0.01])
         },
         {
             "name": "lambda_",
-            "bounds": tensor([0.9, 1.0, 0.01])
+            "bounds": tensor([0.8, 1.0, 0.01])
         },
     ]  # 'discount': 0.99, 'lambda_': 0.95
 
@@ -53,44 +116,44 @@ if __name__ == '__main__':
     print("*** Computing warmup sample ...")
 
     # Compute initial sample
-    X_samples = tensor([[torch.rand(1), torch.rand(1)]])
+    X_samples = tensor([[1.0, 1.0]])
     print("*** Warmup candidate: ", X_samples[0])
     train_utils.train(config, LAMBDA)
     y_samples = get_y_sample(root="results/")
     print("*** Sample value: ", float(y_samples[0]))
 
-    n_iters = 3
+    n_iters = 30
     for i in range(n_iters):
         print("\n\n*** Iteration ", i)
 
         # Create config, set values
         config_dict = train_utils.define_config()
-        data_path_root = "results" + str(i) + "/"
+        data_path_root = "results/result" + str(i) + "/"
         config_dict["data_path"] = data_path_root
         config_dict["log_dir"] = data_path_root + "la_mbda/point_goal2/314"
         config_dict["safety"] = True
         print("*** Log directory: ", config_dict["log_dir"])
 
         # Fit samples to gp
-        gp = SingleTaskGP(X_samples, y_samples)
+        gp = SingleTaskGP(normalize(X_samples, bounds=bounds), y_samples)
         mll = ExactMarginalLogLikelihood(gp.likelihood, gp)
         fit_gpytorch_model(mll)
 
         # Define and sample the acquisition function
-        EI = acqf.ExpectedImprovement(
+        ei = acqf.ExpectedImprovement(
             gp,
             y_samples.min(),
             maximize=False
         )
 
         best_candidate, acq_value = optimize_acqf(
-            acq_function=EI,
+            acq_function=ei,
             bounds=bounds,
             q=1,
             num_restarts=1,
             raw_samples=20
         )
-
+        best_candidate = denormalize(best_candidate, bounds=bounds)
         # Set new hyperparameters in config
         for ix, var in enumerate(bo_vars):
             config_dict[var["name"]] = float(best_candidate[0][ix])
@@ -108,6 +171,15 @@ if __name__ == '__main__':
         X_samples = torch.vstack((X_samples, best_candidate))
         y_samples = torch.vstack((y_samples, y_new_sample))
 
+        plot_bo(
+            gp=gp,
+            ei=ei,
+            x_samples=X_samples,
+            iter=i,
+            bounds=bounds
+        )
+
+    plot_final(y_samples)
 
 
 
