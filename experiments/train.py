@@ -25,6 +25,10 @@ def plot_bo(gp, ei, x_samples, iter, bounds):
         bounds: Bounds of the variables to optimize
     """
 
+    # Flip plot (x-axis)                                                                TODO!!!!!!!!!!!
+    # Plot cost function progress during optimization
+    # Log X_samples!!!
+
     x_ = torch.linspace(-1, 1, 100)
     y_ = torch.linspace(-1, 1, 100)
     x_axis, y_axis = torch.meshgrid(x_, y_, indexing="xy")
