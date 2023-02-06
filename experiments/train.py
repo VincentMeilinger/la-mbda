@@ -34,8 +34,8 @@ def plot_bo(gp, ei, x_samples, iter, bounds):
     ax.title.set_text('Acquisition Function')
 
     if len(x_samples) > 1:
-        ax.scatter(x_samples[:, 0][0:-1], x_samples[:, 1][0:-1], color='white')
-    ax.scatter(x_samples[:, 0][-1], x_samples[:, 1][-1], color='red')
+        ax.scatter(x_samples[:, 0][0:-1], x_samples[:, 1][0:-1], s=35, color='white', edgecolors='black')
+    ax.scatter(x_samples[:, 0][-1], x_samples[:, 1][-1], s=35, color='red', edgecolors='black')
 
     ei_post = ei(X_.unsqueeze(1)).detach().numpy().reshape(len(x_), len(y_))
     ax.imshow(ei_post, extent=[bounds[0][0], bounds[1][0], bounds[0][1], bounds[1][1]])
@@ -51,8 +51,8 @@ def plot_bo(gp, ei, x_samples, iter, bounds):
     ax.title.set_text('GP Mean')
 
     if len(x_samples) > 1:
-        ax.scatter(x_samples[:, 0][0:-1].numpy(), x_samples[:, 1][0:-1], color='white')
-    ax.scatter(x_samples[:, 0][-1], x_samples[:, 1][-1], color='red')
+        ax.scatter(x_samples[:, 0][0:-1].numpy(), x_samples[:, 1][0:-1], s=35, color='white', edgecolors='black')
+    ax.scatter(x_samples[:, 0][-1], x_samples[:, 1][-1], s=35, color='red', edgecolors='black')
 
     posterior_mean = gp.posterior(X_).mean.detach().numpy().reshape(len(x_), len(y_))
     ax.imshow(posterior_mean, extent=[bounds[0][0], bounds[1][0], bounds[0][1], bounds[1][1]])
@@ -163,6 +163,7 @@ if __name__ == '__main__':
         bounds = torch.cat((bounds, bound), dim=0)
     bounds = bounds[1:].T
     print("*** Bounds: ", bounds)
+    bounds_norm = torch.tensor([[-1., -1.], [1., 1.]])
 
     print("*** Starting bayesian optimization of hyper parameters ", [var["name"] + ", " for var in bo_vars])
     print("*** Computing warmup sample ...")
@@ -200,14 +201,10 @@ if __name__ == '__main__':
 
         best_candidate, acq_value = optimize_acqf(
             acq_function=ei,
-            bounds=bounds,
+            bounds=bounds_norm,
             q=1,
             num_restarts=1,
             raw_samples=60
-        )
-        write_to_csv(
-            ("normalized: ", str(best_candidate)),
-            mode='a'
         )
 
         best_candidate = denormalize(best_candidate, bounds=bounds)

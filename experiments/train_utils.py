@@ -55,15 +55,15 @@ def define_config():
         'safety_discount': 0.995,
         'cost_imbalance_weight': 100.0,
         # TRAINING
-        'total_training_steps': 5000,  # 500000
+        'total_training_steps': 20000,  # 500000
         'action_repeat': 2,
         'environment': 'sgym_Safexp-PointGoal2-v0',
         'safety': False,
         'observation_type': 'rgb_image',
         'seed': 314,
         'episode_length': 100,  # 1000
-        'training_steps_per_epoch': 250,  # 25000
-        'evaluation_steps_per_epoch': 100,  # 10000
+        'training_steps_per_epoch': 2500,  # 25000
+        'evaluation_steps_per_epoch': 1000,  # 10000
         'log_dir': 'runs',
         'render_episodes': 1,
         'evaluate_model': False,
