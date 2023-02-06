@@ -25,12 +25,8 @@ def plot_bo(gp, ei, x_samples, iter, bounds):
         bounds: Bounds of the variables to optimize
     """
 
-    # Flip plot (x-axis)                                                                TODO!!!!!!!!!!!
-    # Plot cost function progress during optimization
-    # Log X_samples!!!
-
     x_ = torch.linspace(-1, 1, 100)
-    y_ = torch.linspace(-1, 1, 100)
+    y_ = torch.linspace(1, -1, 100)
     x_axis, y_axis = torch.meshgrid(x_, y_, indexing="xy")
     grid = torch.stack((x_axis, y_axis), 2)
     X_ = grid.reshape(len(x_) * len(y_), 2)
@@ -70,7 +66,7 @@ def plot_bo(gp, ei, x_samples, iter, bounds):
     plt.savefig("plots/mean" + str(iter) + ".png")
 
 
-def plot_final(y_samples):
+def plot_scores(y_samples):
     """
     Create and save a plot summarizing the cost in each BO iteration.
     Arguments:
@@ -82,6 +78,16 @@ def plot_final(y_samples):
     plt.savefig("plots/score.png")
 
 
+def write_to_csv(row, mode='a'):
+    import csv
+    # open the file in the write mode
+    with open('plots/bo_samples.csv', mode) as f:
+        # create the csv writer
+        writer = csv.writer(f)
+
+        # write a row to the csv file
+        writer.writerow(row)
+
 def normalize(x: torch.tensor, bounds: torch.tensor):
     """
     Normalize tensor 'x' given bounds (minimum and maximum) to a range of [-1, 1] in each dimension.
@@ -89,10 +95,11 @@ def normalize(x: torch.tensor, bounds: torch.tensor):
         x: Input tensor to normalize
         bounds: The minimum/maximum values for each dimension ([[min_1, min_2, ...][max_1, max_2, ...]])
     """
-    x_min = bounds[0]
-    x_max = bounds[1]
-    norm = (x - x_min) / (x_max - x_min)
-    return 2 * norm - 1
+    x_min = bounds[0] * 10
+    x_max = bounds[1] * 10
+    x = x * 10
+    norm = (2 * (x - x_min)) / (x_max - x_min) - 1
+    return norm
 
 
 def denormalize(norm: torch.tensor, bounds: torch.tensor):
@@ -102,10 +109,9 @@ def denormalize(norm: torch.tensor, bounds: torch.tensor):
         norm: Input tensor to denormalize
         bounds: The minimum/maximum values for each dimension ([[min_1, min_2, ...][max_1, max_2, ...]])
     """
-    x_min = bounds[:, 0]
-    x_max = bounds[:, 1]
-    x = (norm + 1) / 2
-    return x * (x_max - x_min) + x_min
+    x_min = bounds[0] * 10
+    x_max = bounds[1] * 10
+    return (((norm + 1) * (x_max - x_min))/2 + x_min)/10
 
 
 def get_y_sample(root="results", algo="la_mbda", environment="point_goal2"):
@@ -131,7 +137,6 @@ if __name__ == '__main__':
     """
     The Bayesian optimization (BO) procedure.
     """
-
     torch.manual_seed(0)
     config_dict = train_utils.define_config()
     config_dict["log_dir"] = 'results/la_mbda/point_goal2/314'
@@ -168,7 +173,7 @@ if __name__ == '__main__':
     train_utils.train(config, LAMBDA)
     y_samples = get_y_sample(root="results/")
     print("*** Sample value: ", float(y_samples[0]))
-
+    write_to_csv((str(X_samples[0]), str(y_samples[0])), mode='w')
     n_iters = 30
     for i in range(n_iters):
         print("\n\n*** Iteration ", i)
@@ -198,8 +203,13 @@ if __name__ == '__main__':
             bounds=bounds,
             q=1,
             num_restarts=1,
-            raw_samples=20
+            raw_samples=60
         )
+        write_to_csv(
+            ("normalized: ", str(best_candidate)),
+            mode='a'
+        )
+
         best_candidate = denormalize(best_candidate, bounds=bounds)
 
         # Set new hyperparameters in config
@@ -219,6 +229,13 @@ if __name__ == '__main__':
         X_samples = torch.vstack((X_samples, best_candidate))
         y_samples = torch.vstack((y_samples, y_new_sample))
 
+        # Write samples and sample locations to csv file
+        write_to_csv(
+            (str(X_samples[i+1]), str(y_samples[i+1])),
+            mode='a'
+        )
+
+        # Plot gp posterior and acquisition function with sample locations
         plot_bo(
             gp=gp,
             ei=ei,
@@ -227,4 +244,5 @@ if __name__ == '__main__':
             bounds=bounds
         )
 
-    plot_final(y_samples)
+        # Line plot of all collected model scores
+        plot_scores(y_samples)
