@@ -1,0 +1,7 @@
+"tensor([1., 1.])","tensor([9.4107], dtype=torch.float64)"
+"tensor([0.9158, 0.8074])","tensor([44.6005], dtype=torch.float64)"
+"tensor([0.9785, 0.9250])","tensor([47.2557], dtype=torch.float64)"
+"tensor([0.9831, 0.9878])","tensor([38.2018], dtype=torch.float64)"
+"tensor([0.8732, 0.9957])","tensor([11.3573], dtype=torch.float64)"
+"tensor([0.8687, 0.9940])","tensor([4.0899], dtype=torch.float64)"
+"tensor([0.8498, 0.9893])","tensor([14.6150], dtype=torch.float64)"
