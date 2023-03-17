@@ -130,7 +130,7 @@ def get_y_sample(root="results", algo="la_mbda", environment="point_goal2"):
     arr = experiment_statistics['objectives_median'][-1]  # 'Average reward return'
     acr = experiment_statistics['mean_sum_costs_median'][-1]  # 'Average cost return'
     cr = experiment_statistics['average_costs_median'][-1]  # 'Cost regret'
-    return torch.tensor([[cr + acr]])
+    return torch.tensor([[cr * 100 + acr - arr]])
 
 
 if __name__ == '__main__':
